@@ -10,25 +10,60 @@ from holland_restore.node.util import skip_databases, skip_tables, \
 def build_opt_parser():
     """Build an OptionParser"""
     opt_parser = OptionParser()
-    opt_parser.add_option('--tables', '-t', action='append', default=[])
-    opt_parser.add_option('--exclude-tables', '-T', 
+    opt_parser.add_option('--table', '-t', 
+                          metavar="db.tbl",
+                          action='append',
+                          help=("Only includ tables with the specified name. "
+                                "This option may be specified multiple times."
+                                ),
+                          default=[])
+    opt_parser.add_option('--exclude-table', '-T', 
+                          metavar="db.tbl",
+                          action='append',
+                          help=("Exclude tables and data with the specified "
+                                "table name. This option may be specified "
+                                "multiple times."),
+                          default=[])
+    opt_parser.add_option('--database', '-d',
+                          metavar="database",
+                          action='append',
+                          help=("Only include the specified database. This "
+                                "option may be specified multiple times."),
+                          default=[])
+    opt_parser.add_option('--exclude-database', '-D', 
+                          metavar="database",
                           action='append',
                           default=[])
-    opt_parser.add_option('--databases', '-d', action='append', default=[])
-    opt_parser.add_option('--exclude-databases', '-D', 
-                          action='append',
+    opt_parser.add_option('--engine', '-e',
+                          metavar="engine",
+                          action='append', 
+                          help=("Only output tables and table data with the "
+                                "specified storage engine.  This option may "
+                                "be specified multiple times."),
                           default=[])
-    opt_parser.add_option('--engines', '-e', action='append', default=[])
-    opt_parser.add_option('--exclude-engines', '-E',
+    opt_parser.add_option('--exclude-engine', '-E',
+                          metavar="engine",
                           action='append',
+                          help=("Exclude the specified engine. This option "
+                                "may be specified multiple times"),
                           default=[])
-    opt_parser.add_option('--no-data', action='store_true', default=False)
-    opt_parser.add_option('--skip-binlog', action='store_true', default=False)
+    opt_parser.add_option('--no-data', 
+                          action='store_true', 
+                          help=("Only output database schema, not data."),
+                          default=False)
+    opt_parser.add_option('--skip-binlog', 
+                          action='store_true', 
+                          help=("Add SQL_LOG_BIN = 0 to the top of the dump "
+                                "and disable logging the import to the "
+                                "binary log"),
+                          default=False)
     opt_parser.add_option('--skip-triggers',
                           action='store_true',
+                          help=("Remove CREATE TRIGGER blocks from the output"),
                           default=False)
     opt_parser.add_option('--skip-routines',
                           action='store_true',
+                          help=("Remove functions/stored procedures from the output"),
                           default=False)
     return opt_parser
 
