@@ -7,6 +7,7 @@ setup(name='holland_restore',
       author_email='andrew.garner@rackspace.com',
       url='http://hollandbackup.org',
       packages=['holland_restore'],
+      tests_require=['nose >= 0.10', 'coverage >= 3.0'],
       entry_points="""
       [console_scripts]
       mysqlrestore = holland_restore.script:main
