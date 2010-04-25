@@ -3,7 +3,8 @@ import sys
 from optparse import OptionParser
 from holland_restore.node import NodeStream, NodeFilter
 from holland_restore.node.util import skip_databases, skip_tables, \
-                                      skip_engines, skip_node, skip_binlog, \
+                                      skip_engines, skip_node, \
+                                      skip_triggers, skip_binlog, \
                                       SkipNode
 
 def build_opt_parser():
@@ -37,9 +38,10 @@ def setup_misc_filters(opts, node_filter):
         node_filter.register('table-dml', skip_node)
     if opts.skip_binlog:
         node_filter.register('setup-session', skip_binlog)
-
     if opts.skip_routines:
         node_filter.register('database-routines', skip_node)
+    if opts.skip_triggers:
+        node_filter.register('table-dml', skip_triggers)
 
 def setup_database_filters(opts, node_filter):
     """Add database filters to the node_filter based on requested options"""

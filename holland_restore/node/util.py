@@ -103,3 +103,19 @@ def skip_binlog(dispatcher, node):
     ])
     node.tokens.insert(-1, Token('NoBinLog', lines, (), -1))
     return node
+
+def skip_triggers(dispatcher, node):
+    """Skip triggers in a table-dml section
+
+    :param dispatcher: dispatcher instance that is dispatching to us
+    :param node: Node node that is being considered
+    """
+    def filter_triggers(tokens):
+        for token in tokens:
+            if token.symbol in ('CreateTrigger', 'SetVariable'):
+                continue
+            yield token
+            if token.symbol == 'BlankLine':
+                break
+    node.tokens = filter_triggers(node.tokens)
+    return node
