@@ -113,6 +113,7 @@ def setup_engine_filters(opts, node_filter):
         skip_handler = skip_engines(include=opts.engines,
                                     exclude=opts.exclude_engines)
         node_filter.register('table-ddl', skip_handler)
+        node_filter.register('view-temp-ddl', skip_handler)
         
 def main(args=None):
     """Main entry point for CLI frontend"""
