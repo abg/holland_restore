@@ -1,18 +1,48 @@
-This package provides a single command called 'mysqlrestore'. This command 
-works on mysqldump output files and can extract particular items from a dump
-file based on:
+Introduction
+============
+holland_restore is a simple python script to parse and filter mysqldump
+output.  This script currently supports:
 
-* database name
-* table/view name
-* table engine 
+* filtering by database, table and table-engine
+* skipping routines
+* skipping writing to the binary log on restore
 
-All filters are based on glob patterns, not regular expressions at present.
+Installing and some examples
+============================
+$ virtualenv test
+$ . test/bin/activate
+$ cd holland_restore
+$ python setup.py develop
+$ mysqlrestore < mydump.sql > mysqldump_copy.sql
 
-There are a few useful skip options as well:
+Extract a few tables from a dump
+--------------------------------
+$ mysqlrestore --table mysql.user --table mysql.proc < mydump.sql > user_and_proc.sql
 
-* skip-routines to skip database routines (from mysqldump --routines)
-* skip-binlog to add SET SQL_LOG_BIN = 0 (avoid writing a dump to the binlog)
-* skip-triggers don't restore triggers
+Extracting tables by storage engine
+-----------------------------------
+$ mysqlrestore --engine innodb < mydump.sql > innodb_tables.sql
 
-This code is structured in a flexible way and additional filtering can be added
-with a little effort.
+Extracting only DDL (no table data)
+-----------------------------------
+$ mysqlrestore --no-data < mysqldump.sql > mydump_schema.sql
+
+Combining options
+-----------------
+$ mysqlrestore --no-data --engine innodb --table employees.salaries < mydump.sql > custom.sql
+
+Future features (or, it's all lies until there's code)
+======================================================
+* Rewrite database names, and skip USE database options
+* Progress meter when piping into mysql
+* More filtering options
+
+Weird ideas
+-----------
+Rewriting mysqldump stream into other database formats (postgres,drizzle,etc.)
+custom editing sections of a dump file, e.g.:
+# [NOT IMPLEMENTED]
+$ mysqlrestore --edit-ddl mydb.mytable 
+[fires up EDITOR when mydb.mytable is found in dump]
+[replaces mydb.mytable in stream]
+list table of contents of a dump (lines #'s and byte offsets)
