@@ -12,6 +12,7 @@ def build_opt_parser():
     opt_parser = OptionParser()
     opt_parser.add_option('--table', '-t', 
                           metavar="db.tbl",
+                          dest='tables',
                           action='append',
                           help=("Only includ tables with the specified name. "
                                 "This option may be specified multiple times."
@@ -19,6 +20,7 @@ def build_opt_parser():
                           default=[])
     opt_parser.add_option('--exclude-table', '-T', 
                           metavar="db.tbl",
+                          dest='exclude_tables',
                           action='append',
                           help=("Exclude tables and data with the specified "
                                 "table name. This option may be specified "
@@ -27,16 +29,19 @@ def build_opt_parser():
     opt_parser.add_option('--database', '-d',
                           metavar="database",
                           action='append',
+                          dest='databases',
                           help=("Only include the specified database. This "
                                 "option may be specified multiple times."),
                           default=[])
     opt_parser.add_option('--exclude-database', '-D', 
                           metavar="database",
                           action='append',
+                          dest='exclude_databases',
                           default=[])
     opt_parser.add_option('--engine', '-e',
                           metavar="engine",
                           action='append', 
+                          dest='engines',
                           help=("Only output tables and table data with the "
                                 "specified storage engine.  This option may "
                                 "be specified multiple times."),
@@ -44,6 +49,7 @@ def build_opt_parser():
     opt_parser.add_option('--exclude-engine', '-E',
                           metavar="engine",
                           action='append',
+                          dest='exclude_engines',
                           help=("Exclude the specified engine. This option "
                                 "may be specified multiple times"),
                           default=[])
@@ -86,6 +92,8 @@ def setup_database_filters(opts, node_filter):
         node_filter.register('database-ddl', skip_handler)
         node_filter.register('table-ddl', skip_handler)
         node_filter.register('table-dml', skip_handler)
+        node_filter.register('view-temp-ddl', skip_handler)
+        node_filter.register('view-ddl', skip_handler)
         node_filter.register('database-routines', skip_handler)
         node_filter.register('database-events', skip_handler)
 
