@@ -1,0 +1,18 @@
+This package provides a single command called 'mysqlrestore'. This command 
+works on mysqldump output files and can extract particular items from a dump
+file based on:
+
+* database name
+* table/view name
+* table engine 
+
+All filters are based on glob patterns, not regular expressions at present.
+
+There are a few useful skip options as well:
+
+* skip-routines to skip database routines (from mysqldump --routines)
+* skip-binlog to add SET SQL_LOG_BIN = 0 (avoid writing a dump to the binlog)
+* skip-triggers don't restore triggers
+
+This code is structured in a flexible way and additional filtering can be added
+with a little effort.
