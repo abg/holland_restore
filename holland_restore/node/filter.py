@@ -27,6 +27,7 @@ class NodeFilter(object):
         self._dispatch = {
             'dump-header' : emit_node,
             'setup-session' : emit_node,
+            'restore-session' : emit_node,
             'replication' : emit_node,
             'final' : emit_node,
             'database-ddl' : emit_node,
@@ -39,6 +40,7 @@ class NodeFilter(object):
             'view-ddl' : emit_node,
             'view-finalize-db' : emit_node,
             'database-routines' : emit_node,
+            'database-events' : emit_node,
         }
         self._rewriters = {}
         self.register('dump-header', parse_header)
@@ -75,6 +77,9 @@ class NodeFilter(object):
         except KeyError:
             # no rewriter for node type
             pass
+        except:
+            node.clear()
+            raise
         return dispatch(node)
 
 def parse_database(self, node):

@@ -1,8 +1,9 @@
 """Base classes for Node support"""
 
 import itertools
-from holland_restore.tokenizer import Tokenizer, RULES
+from holland_restore.tokenizer import Tokenizer, RULES, Token
 from holland_restore.tokenizer import read_until, yield_until
+from holland_restore.tokenizer.util import read_sequence
 
 
 class Node(object):
@@ -80,6 +81,36 @@ class TokenQueue(list):
             self.clear()
 
 
+def categorize_comment_block(tokens):
+    """Generate a node based only on a set of tokens"""
+    meat = tokens[1]
+    if 'routines' in meat.text:
+        node = Node()
+        node.type = 'database-routines'
+        node.tokens = tokens
+    elif 'events' in meat.text:
+        node = Node()
+        node.type = 'database-events'
+        node.tokens = tokens
+    else:
+        raise ValueError("Could not categorize comment: %s", meat.text)
+    return node
+
+def process_comments(self, token, tokenizer):
+    """Process a comment block.  If it is an empty 'section', try to figure out
+    the node type based on the comment text.
+    """
+    tokens = read_sequence(['SqlComment', 'SqlComment'], tokenizer)
+    next_token = tokenizer.peek()
+    if next_token.symbol is 'BlankLine':
+        tokens.insert(0, token)
+        tokens.append(tokenizer.next())
+        if tokenizer.peek().symbol is 'SqlComment':
+            # empty section
+            return categorize_comment_block(tokens)
+    self._queue.extend(tokens)
+    return None
+
 class NodeStream(object):
     """Process tokens from a mysqldump output tokenizer and
     generate a Node grouping related tokens
@@ -102,14 +133,46 @@ class NodeStream(object):
         :param token: decision token
         :type token: `sqlparse.token.Token`
         """
-        if token.symbol is 'CreateDatabase':
+        if token.symbol == 'SetVariable':
+            assert 'TIME_ZONE' in token.text
+            self._queue.append(token)
+            for _token in self._tokenizer:
+                if _token.symbol in ('SetVariable', 'BlankLine'):
+                    self._queue.append(_token)
+                else:
+                    self._tokenizer.push_back(_token)
+                    break
+            node = Node()
+            node.type = 'restore-session'
+            node.tokens = self._queue.flush()
+            block = node
+        elif token.symbol is 'SqlComment':
+            try:
+                block = process_comments(self, token, self._tokenizer)
+            except StopIteration:
+                block = Node()
+                block.type = 'final'
+                block.tokens = [token]
+        elif token.symbol is 'ConditionalComment':
+            # queue up until we hit something that is != SetVariable
+            self._queue.append(token)
+            for _token in self._tokenizer:
+                if _token.symbol == 'SetVariable':
+                    self._queue.append(_token)
+                else:
+                    self._tokenizer.push_back(_token)
+                    break
+            block = None
+        elif token.symbol is 'CreateDatabase':
             block = Node()
             block.type = 'database-ddl'
             block.tokens.extend(self._queue.flush())
+            block.tokens.append(token)
             block.tokens.extend(read_until(['SqlComment'], self._tokenizer))
         elif token.symbol in ('DropTable', 'CreateTable'):
             block = Node()
             block.type = 'table-ddl'
+            self._queue.append(token)
             block.tokens.extend(self._queue.flush())
             block.tokens.extend(read_until(['SqlComment'], self._tokenizer))
         elif token.symbol in ('LockTable', 'AlterTable', 'InsertRow'):
@@ -118,7 +181,7 @@ class NodeStream(object):
             # the node
             block = IterableNode()
             block.type = 'table-dml'
-            block.tokens = itertools.chain(self._queue.flush(),
+            block.tokens = itertools.chain(self._queue.flush() + [token],
                                 yield_until(['SqlComment'], self._tokenizer))
         elif token.symbol is 'ChangeMaster':
             block = Node()
@@ -134,48 +197,37 @@ class NodeStream(object):
             block = Node()
             block.type = 'view-temp-ddl'
             block.tokens.extend(self._queue.flush())
+            block.tokens.append(token)
             block.tokens.extend(read_until(['SqlComment'], self._tokenizer))
         elif token.symbol is 'UseDatabase':
             block = Node()
             block.type = 'view-finalize-db'
             block.tokens.extend(self._queue.flush())
-            block.tokens.extend(read_until(['SqlComment', 
-                                            'ConditionalComment'], 
-                                           self._tokenizer))
+            block.tokens.append(token)
+            if self._tokenizer.peek().symbol == 'BlankLine':
+                block.tokens.extend(read_until(['SqlComment', 
+                                                'ConditionalComment'], 
+                                                self._tokenizer))
         elif token.symbol in ('DropTmpView'):
             block = Node()
             block.type = 'view-ddl'
             block.tokens.extend(self._queue.flush())
+            block.tokens.append(token)
             block.tokens.extend(read_until(['SqlComment'], self._tokenizer))
         else:
-            raise ValueError("Can't handle %r queue=%r" % 
-                            (token, [t.text for t in self._queue]))
+            raise ValueError("Can't handle %r[%s] queue=%r" % 
+                            (token, token.text, ['%r[%s]' % (t, t.text) for t in self._queue]))
         yield block
-        block.clear()
 
     def iter_chunks(self):
         """Iterate over chunks from the token stream, yielding 
         grouped tokens as Node instances
         """
         
-        # symbols that we don't really look at but want to queue until
-        # we hit a decision token.
-        soft_symbols = ('SqlComment', 
-                        'ConditionalComment', 
-                        'BlankLine', 
-                        'SetVariable', 
-                        'DropTable', 
-                        'DropView')
         for token in self._tokenizer:
-            self._queue.add(token)
-            if token.symbol not in soft_symbols:
-                for chunk in self.next_chunk(token):
-                    if chunk is not None:
-                        yield chunk
-        final_block = Node()
-        final_block.type = 'final'
-        final_block.tokens.extend(self._queue.flush())
-        yield final_block
+            for chunk in self.next_chunk(token):
+                if chunk is not None:
+                    yield chunk
 
     def __iter__(self):
         header = Node()

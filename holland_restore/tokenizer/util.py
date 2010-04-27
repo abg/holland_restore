@@ -1,4 +1,17 @@
 """Utility methods for working with `sqlparse.lex.Lexer` token streams"""
+
+def read_sequence(symbol_sequence, tokenizer, inclusive=False):
+    sequence = list(symbol_sequence)
+    result = []
+    while sequence:
+        token = tokenizer.next()
+        expected = sequence.pop(0)
+        if token.symbol == expected:
+            result.append(token)
+        else:
+            raise ValueError("Unexpected token in sequence: %r[%s]" % (token, token.text))
+    return result
+
 def read_until(stop_symbols, tokenizer, inclusive=False):
     """Read tokens from tokenizer until we hit a symbol in ``symbols``
     and return the text of all tokens read up to or including that point

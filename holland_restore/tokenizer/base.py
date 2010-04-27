@@ -109,6 +109,19 @@ class Tokenizer(object):
         """       
         self.token_queue.append(token)
 
+    def peek(self):
+        """Peek at the next token in the tokenizer but don't move 
+        past it.
+
+        This is equivalent to calling next() and pushing the token
+        back on the tokenizer stack.
+
+        :returns: `Token`
+        """
+        token = self.next()
+        self.push_back(token)
+        return token
+
     def next(self):
         """Return the next available token.
 

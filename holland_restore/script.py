@@ -90,6 +90,7 @@ def setup_database_filters(opts, node_filter):
         skip_handler = skip_databases(include=opts.databases,
                                       exclude=opts.exclude_databases)
         node_filter.register('database-ddl', skip_handler)
+        node_filter.register('view-finalize-db', skip_handler)
         node_filter.register('table-ddl', skip_handler)
         node_filter.register('table-dml', skip_handler)
         node_filter.register('view-temp-ddl', skip_handler)
